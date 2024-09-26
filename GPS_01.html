@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shuttle Bus Location System</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+
+        #shuttle-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background-image: url('back.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            border: 2px solid #333;
+        }
+
+        #bus {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            transition: opacity 0.5s ease-in-out;
+            top: 130px;
+            left: 375px;
+        }
+
+        #startButton {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+        }
+
+        #startButton img {
+            width: 80px;
+            height: 50px;
+        }
+
+        #break-time {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: white;
+            display: none;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="shuttle-container">
+    <img src="bus.png" id="bus"> <!-- 초기 대기 위치: x: 130, y: 375 -->
+    <button id="startButton">
+        <img src="bu.png" alt="Start Button"> <!-- 버튼 이미지 적용 -->
+    </button>
+    <div id="break-time">Break time</div> <!-- Break time 표시 -->
+</div>
+
+<script>
+    const bus = document.getElementById("bus");
+    const breakTimeDiv = document.getElementById("break-time");
+
+    // 버스 이동 좌표 설정
+    const positions = [
+        {x: 375, y: 130},  // 호텔 대기 위치 (출발점)
+        {x: 145, y: 350},  // T2 위치
+        {x: 605, y: 350},  // T1 위치
+        {x: 375, y: 130}   // 호텔 대기 위치 복귀
+    ];
+
+    let currentStep = 0;
+
+    // 시간대별로 이동 시간을 정의
+    const times = {
+        t2: {start: 0, end: 15},   // 호텔 → T2: 정각 ~ 15분
+        t1: {start: 15, end: 35},  // T2 → T1: 15분 ~ 35분
+        hotel: {start: 35, end: 60} // T1 → 호텔: 35분 ~ 정각
+    };
+
+    // Break time 확인
+    function isBreakTime(hours, minutes) {
+        return (hours >= 23 || hours < 6 || (hours === 12 && minutes >= 0 && minutes < 60));
+    }
+
+    // 매 시간마다 이동 처리
+    function getMovePosition(minutes) {
+        if (minutes >= times.t2.start && minutes < times.t2.end) {
+            return {start: positions[0], end: positions[1]}; // 호텔 → T2
+        } else if (minutes >= times.t1.start && minutes < times.t1.end) {
+            return {start: positions[1], end: positions[2]}; // T2 → T1
+        } else {
+            return {start: positions[2], end: positions[3]}; // T1 → 호텔
+        }
+    }
+
+ // 3.5초마다 실행 (0.5초 깜빡임 + 3초 대기)
+ setInterval(() => {
+        bus.style.opacity = 0;  // 투명하게 설정
+        setTimeout(() => {
+            bus.style.opacity = 1;  // 0.5초 후 다시 불투명하게
+        }, 700);  // 0.5초 동안 깜빡임 지속
+    }, 3500);  // 3.5초마다 실행
+
+    // 버스 이동 처리
+    function moveBus() {
+        const now = new Date();
+        const hours = now.getHours();
+        const minutes = now.getMinutes();
+
+        // Break time인지 확인
+        if (isBreakTime(hours, minutes)) {
+            bus.style.display = 'none'; // 버스 숨김
+            breakTimeDiv.style.display = 'block'; // Break time 표시
+            return;
+        }
+
+        breakTimeDiv.style.display = 'none'; // Break time 숨김
+        bus.style.display = 'block'; // 버스 표시
+
+        // 이동할 위치 계산
+        const {start, end} = getMovePosition(minutes);
+        const progress = (minutes % 15) / 15; // 현재 분에 따른 진행 비율 계산
+        const currentX = start.x + (end.x - start.x) * progress;
+        const currentY = start.y + (end.y - start.y) * progress;
+
+        // 버스 위치 갱신
+        bus.style.left = currentX + "px";
+        bus.style.top = currentY + "px";
+    }
+
+    // 1초마다 버스 위치 갱신
+    setInterval(moveBus, 1000);
+
+</script>
+
+</body>
+</html>
